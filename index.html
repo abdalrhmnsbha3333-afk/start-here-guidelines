@@ -329,7 +329,10 @@
     align-items:center;
     justify-content:space-between;
     margin-bottom:10px;
+    flex-wrap:wrap;
+    gap:8px;
   }
+  .lb-reset-group{display:flex;gap:6px;flex-wrap:wrap;}
   .lb-head h3{margin:0;font-size:15px;color:var(--green-deep);}
   .lb-reset{
     background:transparent;
@@ -602,7 +605,10 @@ document.addEventListener('DOMContentLoaded', function(){
   <div class="lb-card">
     <div class="lb-head">
       <h3>🏆 لوحة المتصدرين</h3>
-      <button class="lb-reset" id="resetPagesBtn">تصفير صفحات الحفظ والمراجعة 🔄</button>
+      <div class="lb-reset-group">
+        <button class="lb-reset" id="resetPagesBtn">تصفير صفحات الحفظ والمراجعة 🔄</button>
+        <button class="lb-reset" id="resetPointsBtn">تصفير كل النقاط 🔄</button>
+      </div>
     </div>
     <div class="lb-tabs">
       <button class="lb-tab-btn active" data-lb-tab="points">⭐ النقاط</button>
@@ -633,6 +639,7 @@ document.addEventListener('DOMContentLoaded', function(){
   <div id="studentsList"></div>
 
   <button class="btn btn-outline btn-block" id="addStudentBtn" style="margin-bottom:10px;">➕ إضافة طالب جديد</button>
+  <button class="btn btn-outline btn-block" id="deleteAllStudentsBtn" style="margin-bottom:10px;color:#a4453a;border-color:#a4453a;">🗑️ حذف بيانات كل الطلاب بهاي الشعبة</button>
   <p class="empty-note">تقدري تعدّلي اسم أي طالب أو رقمه بالضغط عليه مباشرة.</p>
 
   <div class="log-card">
@@ -1706,6 +1713,16 @@ async function resetPagesTotals(){
   showSaveStatus('✅ تم تصفير صفحات الحفظ والمراجعة', false);
 }
 
+async function resetPointsOnly(){
+  const ok = confirm('متأكدة إنك بدك تصفّري نقاط كل الطلاب بهاي الشعبة؟ صفحات الحفظ والمراجعة رح تضل زي ما هي، وسجل الأيام السابقة ما بينلغي.');
+  if(!ok) return;
+  config.students.forEach(s => { s.totalPoints = 0; });
+  await saveConfig();
+  renderLeaderboard();
+  renderStudents();
+  showSaveStatus('✅ تم تصفير كل النقاط', false);
+}
+
 async function deleteStudent(studentId){
   const student = config.students.find(s=>s.id===studentId);
   if(!student) return;
@@ -1737,6 +1754,25 @@ async function addNewStudent(){
   await saveConfig();
   renderStudents();
   showSaveStatus('✅ تمت إضافة بطاقة طالب جديد، عبّي اسمه ورقمه', false);
+}
+
+async function deleteAllStudents(){
+  const halaqahName = (halaqat.find(h => h.id === currentHalaqahId) || {}).name || 'هاي الشعبة';
+  const step1 = confirm(`⚠️ تحذير: هاد رح يحذف كل الطلاب وبياناتهم (النقاط، الصفحات${currentHalaqahId==='h1' ? '، الأرصدة' : ''}) بشعبة "${halaqahName}" بشكل نهائي. متأكدة؟`);
+  if(!step1) return;
+  const typed = prompt('لتأكيد الحذف النهائي، اكتبي كلمة "حذف" بالمربع تحت:');
+  if((typed || '').trim() !== 'حذف'){
+    showSaveStatus('تم إلغاء الحذف — ما تغيّر أي شي.', false);
+    return;
+  }
+  config.students = [];
+  entries = {};
+  await saveConfig();
+  await saveEntries(currentDate);
+  renderStudents();
+  renderLeaderboard();
+  renderDrawSection();
+  showSaveStatus('🗑️ تم حذف كل بيانات الطلاب بهاي الشعبة', true);
 }
 
 function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
@@ -1865,7 +1901,9 @@ async function init(){
   });
   document.getElementById('sendGroupBtn').addEventListener('click', sendToGroup);
   document.getElementById('resetPagesBtn').addEventListener('click', resetPagesTotals);
+  document.getElementById('resetPointsBtn').addEventListener('click', resetPointsOnly);
   document.getElementById('addStudentBtn').addEventListener('click', addNewStudent);
+  document.getElementById('deleteAllStudentsBtn').addEventListener('click', deleteAllStudents);
   initLeaderboardTabs();
   renderLeaderboard();
   renderDrawSection();
